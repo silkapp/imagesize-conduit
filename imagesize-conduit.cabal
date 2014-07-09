@@ -1,15 +1,15 @@
 Name:                imagesize-conduit
-Version:             1.0.0.2
+Version:             1.0.0.3
 Synopsis:            Determine the size of some common image formats.
 Description:         Currently supports PNG, GIF, and JPEG. This package provides a Sink that will consume the minimum number of bytes necessary to determine the image dimensions.
 License:             BSD3
 License-file:        LICENSE
 Author:              Michael Snoyman
-Maintainer:          michael@snoyman.com
+Maintainer:          Mikael Brockman <mikael@silk.co>, Felipe Lessa <felipe.lessa@gmail.com>
 Category:            Graphics, Conduit
 Build-type:          Simple
 Cabal-version:       >=1.8
-Homepage:            http://github.com/snoyberg/conduit
+Homepage:            http://github.com/silkapp/imagesize-conduit
 extra-source-files:  test/main.hs
                      test/logo.png
                      test/logo.gif
@@ -38,4 +38,4 @@ test-suite test
 
 source-repository head
   type:     git
-  location: git://github.com/snoyberg/conduit.git
+  location: git://github.com/silkapp/imagesize-conduit.git
