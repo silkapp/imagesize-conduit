@@ -14,6 +14,9 @@ extra-source-files:  test/main.hs
                      test/logo.png
                      test/logo.gif
                      test/logo.jpg
+                     CHANGELOG.md
+                     README.md
+                     LICENSE
 
 Library
   Exposed-modules:     Data.Conduit.ImageSize
