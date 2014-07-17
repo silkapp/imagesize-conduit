@@ -1,0 +1,12 @@
+language: haskell
+install:
+  - "cabal install --enable-tests --dry-run -v3"
+  - "travis_retry cabal install --only-dependencies --force-reinstalls --enable-tests"
+script:
+  - "cabal test --jobs=1"
+notifications:
+  email:
+    recipients:
+      - travis@silk.co
+    on_success: never
+    on_failure: change
