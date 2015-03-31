@@ -1,5 +1,10 @@
 # Changelog
 
+#### 1.1
+
+* Add support for different exception methods with `MonadThrow`
+* Add custom exception `ImageSizeException`
+
 #### 1.0.0.4
 
 * Change maintainer field
