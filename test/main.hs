@@ -1,10 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
-import qualified Data.Conduit as C
-import qualified Data.Conduit.Binary as CB
 import Control.Monad.Trans.Resource (runResourceT)
-import Data.Conduit.ImageSize
-
 import Test.Hspec
+import qualified Data.Conduit        as C
+import qualified Data.Conduit.Binary as CB
+
+import Data.Conduit.ImageSize
 
 main :: IO ()
 main = hspec $ do

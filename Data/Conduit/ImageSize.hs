@@ -1,46 +1,56 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE DeriveDataTypeable #-}
--- | Detect the image size without opening the image itself.
+{-# LANGUAGE
+    OverloadedStrings
+  , RankNTypes
+  , DeriveDataTypeable
+  #-}
+-- | Detect the image size without opening the image itself and retrieving the minimum amount of data.
 module Data.Conduit.ImageSize
   ( Size (..)
   , FileFormat (..)
+  , ImageSizeException (..)
   , sinkImageInfo
   , sinkImageSize
   ) where
 
-import qualified Data.ByteString.Lazy as L
-import Data.Conduit
-import qualified Data.Conduit.Binary as CB
-import qualified Data.ByteString as S
+import Control.Applicative ((<$>), (<*>))
+import Control.Monad.Catch
 import Data.ByteString.Char8 ()
 import Data.ByteString.Lazy.Char8 ()
-import qualified Data.Typeable as T
-import Control.Applicative ((<$>), (<*>))
-
+import Data.Conduit
+import qualified Data.ByteString      as S
+import qualified Data.ByteString.Lazy as L
+import qualified Data.Conduit.Binary  as CB
+import qualified Data.Typeable        as T
 
 data Size = Size { width :: Int, height :: Int }
   deriving (Show, Eq, Ord, Read, T.Typeable)
 
-
 data FileFormat = GIF | PNG | JPG
   deriving (Show, Eq, Ord, Read, Enum, T.Typeable)
 
+data ImageSizeException
+  = EmptyImage
+  | UnknownImageFormat
+  | BadGIFHeader
+  | BadPNGHeader
+  | BadJPGHeader
+  deriving (Show, T.Typeable)
+
+instance Exception ImageSizeException
 
 -- | Specialized version of 'sinkImageInfo' that returns only the
 -- image size.
-sinkImageSize :: Monad m => Consumer S.ByteString m (Maybe Size)
+sinkImageSize :: (Monad m, MonadThrow n, Functor n) => Consumer S.ByteString m (n Size)
 sinkImageSize = fmap (fmap fst) sinkImageInfo
-
 
 -- | Find out the size of an image.  Also returns the file format
 -- that parsed correctly.  Note that this function does not
 -- verify that the file is indeed in the format that it returns,
 -- since it looks only at a small part of the header.
-sinkImageInfo :: Monad m => Consumer S.ByteString m (Maybe (Size, FileFormat))
+sinkImageInfo :: (Monad m, MonadThrow n) => Consumer S.ByteString m (n (Size, FileFormat))
 sinkImageInfo = start id
   where
-    start front = await >>= maybe (return Nothing) (pushHeader front)
+    start front = await >>= maybe (return $ throwM EmptyImage) (pushHeader front)
 
     pushHeader front bs'
       | S.length bs >= 11 && S.take 3 bs == S.pack [0xFF, 0xD8, 0xFF] =
@@ -50,7 +60,7 @@ sinkImageInfo = start id
       | S.length bs >= 8 && S.take 8 bs == S.pack [137, 80, 78, 71, 13, 10, 26, 10] =
         leftover (S.drop 8 bs) >> png
       | S.length bs < 11 = start $ S.append bs
-      | otherwise = leftover bs >> return Nothing
+      | otherwise = leftover bs >> return (throwM UnknownImageFormat)
       where
       bs = front bs'
 
@@ -59,8 +69,8 @@ sinkImageInfo = start id
       b <- CB.take 4
       let go x y = fromIntegral x + (fromIntegral y) * 256
       return $ case L.unpack b of
-        [w1, w2, h1, h2] -> Just (Size (go w1 w2) (go h1 h2), GIF)
-        _ -> Nothing
+        [w1, w2, h1, h2] -> return (Size (go w1 w2) (go h1 h2), GIF)
+        _ -> throwM BadGIFHeader
 
     png = do
       CB.drop 4
@@ -69,14 +79,17 @@ sinkImageInfo = start id
         then do
           mw <- getInt 4 0
           mh <- getInt 4 0
-          return $ (\w h -> (Size w h, PNG)) <$> mw <*> mh
-        else return Nothing
+          return $ maybe
+            (throwM BadPNGHeader)
+            (\(w, h) -> return (Size w h, PNG))
+            ((,) <$> mw <*> mh)
+        else return $ throwM BadPNGHeader
 
     jpg = do
       mi <- getInt 2 0
       case mi of
-        Nothing -> return (Just (Size 1 1, JPG))
-        Just i -> do
+        Nothing -> return (return (Size 1 1, JPG))
+        Just i  -> do
           CB.drop $ i - 2
           jpgFrame
 
@@ -93,10 +106,13 @@ sinkImageInfo = start id
               _  <- CB.take 3
               mh <- getInt 2 0
               mw <- getInt 2 0
-              return $ (\w h -> (Size w h, JPG)) <$> mw <*> mh
-            Just _ -> jpg
-            Nothing -> return Nothing
-        _ -> return Nothing
+              return $ maybe
+                (throwM BadJPGHeader)
+                (\(w, h) -> return (Size w h, JPG))
+                ((,) <$> mw <*> mh)
+            Just _  -> jpg
+            Nothing -> return $ throwM BadJPGHeader
+        _ -> return $ throwM BadJPGHeader
 
 getInt :: (Monad m, Integral i)
      => Int
@@ -107,4 +123,4 @@ getInt len i = do
   mx <- CB.head
   case mx of
     Nothing -> return Nothing
-    Just x -> getInt (len - 1) (i * 256 + fromIntegral x)
+    Just x  -> getInt (len - 1) (i * 256 + fromIntegral x)
