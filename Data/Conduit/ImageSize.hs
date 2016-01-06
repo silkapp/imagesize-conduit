@@ -1,7 +1,8 @@
 {-# LANGUAGE
-    OverloadedStrings
-  , RankNTypes
+    CPP
   , DeriveDataTypeable
+  , OverloadedStrings
+  , RankNTypes
   #-}
 -- | Detect the image size without opening the image itself and retrieving the minimum amount of data.
 module Data.Conduit.ImageSize
@@ -12,7 +13,9 @@ module Data.Conduit.ImageSize
   , sinkImageSize
   ) where
 
+#if !MIN_VERSION_base(4,8,0)
 import Control.Applicative ((<$>), (<*>))
+#endif
 import Control.Monad.Catch
 import Data.ByteString.Char8 ()
 import Data.ByteString.Lazy.Char8 ()
