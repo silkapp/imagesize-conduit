@@ -5,7 +5,7 @@ Description:         Currently supports PNG, GIF, and JPEG. This package provide
 License:             BSD3
 License-file:        LICENSE
 Author:              Michael Snoyman
-Maintainer:          Silk <code@silk.co>, Felipe Lessa <felipe.lessa@gmail.com>
+Maintainer:          Adam Bergmark <adam@bergmark.nl>, Felipe Lessa <felipe.lessa@gmail.com>
 Category:            Graphics, Conduit
 Build-type:          Simple
 Cabal-version:       >=1.8
